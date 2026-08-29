@@ -195,3 +195,44 @@ if (!location.hash) {
     if (!document.hidden && onScreen) tick();
   });
 })();
+
+/* ---- the address ----------------------------------------------------------
+   A mistyped mint address is somebody else's money gone, so the page never asks
+   anyone to copy it by hand. The clipboard API needs a secure context and this
+   page has one, but the old command is kept behind it, and if both fail the
+   text is selected so a long press can finish the job. */
+(() => {
+  const code = document.getElementById("ca");
+  const b = document.getElementById("ca-copy");
+  if (!code || !b) return;
+
+  const flash = (t) => {
+    b.textContent = t; b.classList.add("done");
+    setTimeout(() => { b.textContent = "Copy"; b.classList.remove("done"); }, 1800);
+  };
+  const legacy = (text) => {
+    const t = document.createElement("textarea");
+    t.value = text; t.setAttribute("readonly", "");
+    t.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(t); t.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(t);
+    return ok;
+  };
+  const select = () => {
+    const r = document.createRange(); r.selectNodeContents(code);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  };
+
+  b.addEventListener("click", () => {
+    const text = code.textContent.trim();
+    if (navigator.clipboard && isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => flash("Copied"))
+        .catch(() => { if (legacy(text)) flash("Copied"); else { select(); flash("Select"); } });
+      return;
+    }
+    if (legacy(text)) flash("Copied"); else { select(); flash("Select"); }
+  });
+})();
