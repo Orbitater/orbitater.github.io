@@ -1,0 +1,16 @@
+{
+  "name": "orbitater-site",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "8.2.2"
+  },
+  "displayName": "Orbitater"
+}
