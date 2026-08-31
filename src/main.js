@@ -283,11 +283,8 @@ if (!location.hash) {
 
   btn.addEventListener("click", () => set(!want));
 
-  /* Huwag magpatugtog sa isang tab na hindi tinitingnan. */
-  document.addEventListener("visibilitychange", () => {
-    if (!want) return;
-    if (document.hidden) bgm.stop(); else bgm.start().catch(() => {});
-  });
+  /* Walang pagtigil kapag lumipat ka ng app. Iyon mismo ang punto: dapat
+     tumuloy ito habang naka-lock ang screen. */
 
   if (recall()) {
     paint(true);
