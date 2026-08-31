@@ -10,11 +10,12 @@
  * art/build_music.py, parehong chord at parehong Rhodes. Ako pa rin ang gumawa
  * nito, kaya wala pa ring lisensyang hihingin ninuman.
  *
- * Anim na bahagi ito na magkakasunod, bawat isa ay may sariling bilis, susi at
- * mga instrumento: Rhodes, pluck, kampana, pad, bass, at tambol. Ang isang maikling
- * loop ay halata sa ikalawang ikot, kaya wala nang maikling loop.
+ * Labindalawang bahagi ito na magkakasunod, labintatlong minuto, bawat isa ay may
+ * sariling bilis, susi at mga instrumento: Rhodes, pluck, kampana, pad, bass, at
+ * tambol. Ang isang maikling loop ay halata sa ikalawang ikot, kaya wala nang
+ * maikling loop.
  *
- * Wala itong kinukuha hangga't walang pumipindot. Ang 3.3 MB ay hindi dapat
+ * Wala itong kinukuha hangga't walang pumipindot. Ang 5.7 MB ay hindi dapat
  * pasanin ng taong hindi naman nakikinig.
  */
 import MARKS from "./marks.json";
@@ -27,14 +28,11 @@ const LAST = "orbitater.sound.part";
 export function makeBgm(onChange, onPart) {
   if (typeof Audio === "undefined") return null;
 
-  let el = null;
+  let el = null, from = 0, seeded = false;
 
   const build = () => {
-    /* Piliin ang bahagi BAGO itakda ang src, at ilagay ito sa mismong URL.
-       Ang unang bersyon ay naghihintay ng loadedmetadata bago lumukso, at kung
-       hindi dumating iyon sa tamang sandali ay hindi na nangyayari ang paglukso,
-       kaya lagi kang nasa unang bahagi. Ang #t= ay bahagi ng pamantayan: sinasabi
-       nito sa browser kung saan magsisimula, at wala nang hihintayin. */
+    /* Pumili ng bahagi na iiwasan ang huli mong narinig. Ang paglukso mismo ay
+       nasa start(), pagkatapos magsimula ang tugtog. */
     const parts = (MARKS && MARKS.marks) || [];
     let idx = 0;
     if (parts.length > 1) {
@@ -44,25 +42,20 @@ export function makeBgm(onChange, onPart) {
       if (idx === prev) idx = (idx + 1 + Math.floor(Math.random() * (parts.length - 1))) % parts.length;
       try { localStorage.setItem(LAST, String(idx)); } catch (e) {}
     }
-    const from = parts.length ? parts[idx].at + 0.05 : 0;
+    from = parts.length ? parts[idx].at + 0.05 : 0;
 
+    /* Walang #t= sa URL. Ginagawa niyon ang simula na simula rin ng loop, kaya
+       kung nagsimula ka sa ikaanim na bahagi ay iyon na lang ang paulit-ulit at
+       hindi mo na maririnig ang lima. Ang paglukso ay ginagawa pagkatapos
+       magsimula ang tugtog, kung saan tiyak nang alam ng browser ang buong file. */
     el = document.createElement("audio");
-    el.src = SRC + (from ? "#t=" + from.toFixed(2) : "");
+    el.src = SRC;
     el.loop = true;
     el.preload = "auto";
     el.setAttribute("playsinline", "");
     el.volume = 0.62;
 
-    /* At kung hindi igagalang ng browser ang #t=, lumukso na lang tayo. */
-    if (from) {
-      const go = () => {
-        if (el.currentTime < from - 1 || el.currentTime > from + 25) {
-          try { el.currentTime = from; } catch (e) {}
-        }
-      };
-      el.addEventListener("loadedmetadata", go, { once: true });
-      el.addEventListener("canplay", go, { once: true });
-    }
+
 
     /* Ang pindutan ay dapat sumunod sa tunay na estado. Kung ang telepono mismo
        ang huminto, kailangang malaman iyon ng pindutan at hindi magsinungaling. */
@@ -81,7 +74,9 @@ export function makeBgm(onChange, onPart) {
        pagpalit, walang nagsasabing nagpapalit nga ito. */
     const TITLES = {
       room: "Still falling", rain: "Nobody sent him", tilt: "Seven point six six",
-      bells: "Below the potato radius", bap: "It never lands", "return": "Still falling",
+      drift: "No agency", bells: "Below the potato radius", swing: "The ground curves away",
+      bap: "It never lands", dust: "Unscheduled object", lift: "He has not hit anything",
+      night: "Low earth orbit", close: "Nobody sent him", "return": "Still falling",
     };
     const nameAt = (t) => {
       let n = parts.length ? parts[0].name : "room";
@@ -131,7 +126,17 @@ export function makeBgm(onChange, onPart) {
     get state() { return el ? (el.paused ? "paused" : "running") : "none"; },
     async start() {
       if (!el) build();
-      await el.play();
+      if (seeded || !from) { await el.play(); return; }
+      /* Patahimikin habang lumulukso, para walang kalahating segundo ng maling
+         bahagi bago dumating sa tama. */
+      seeded = true;
+      el.muted = true;
+      try {
+        await el.play();
+        el.currentTime = from;
+      } finally {
+        el.muted = false;
+      }
     },
     stop() {
       if (el) el.pause();
