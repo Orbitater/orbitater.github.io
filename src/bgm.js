@@ -24,33 +24,44 @@ const COVER = "/cover.jpg";
 const LAST = "orbitater.sound.part";
 
 
-export function makeBgm(onChange) {
+export function makeBgm(onChange, onPart) {
   if (typeof Audio === "undefined") return null;
 
   let el = null;
 
   const build = () => {
+    /* Piliin ang bahagi BAGO itakda ang src, at ilagay ito sa mismong URL.
+       Ang unang bersyon ay naghihintay ng loadedmetadata bago lumukso, at kung
+       hindi dumating iyon sa tamang sandali ay hindi na nangyayari ang paglukso,
+       kaya lagi kang nasa unang bahagi. Ang #t= ay bahagi ng pamantayan: sinasabi
+       nito sa browser kung saan magsisimula, at wala nang hihintayin. */
+    const parts = (MARKS && MARKS.marks) || [];
+    let idx = 0;
+    if (parts.length > 1) {
+      let prev = -1;
+      try { prev = parseInt(localStorage.getItem(LAST), 10); } catch (e) {}
+      idx = Math.floor(Math.random() * parts.length);
+      if (idx === prev) idx = (idx + 1 + Math.floor(Math.random() * (parts.length - 1))) % parts.length;
+      try { localStorage.setItem(LAST, String(idx)); } catch (e) {}
+    }
+    const from = parts.length ? parts[idx].at + 0.05 : 0;
+
     el = document.createElement("audio");
-    el.src = SRC;
+    el.src = SRC + (from ? "#t=" + from.toFixed(2) : "");
     el.loop = true;
     el.preload = "auto";
     el.setAttribute("playsinline", "");
     el.volume = 0.62;
 
-    /* Magsimula sa ibang bahagi sa bawat pagbukas.
-       Ang unang bersyon ay iniingatan ang eksaktong posisyon, kaya lagi kang
-       bumabalik sa parehong lugar at parang iisa lang ang tugtog. Anim ang bahagi
-       at bawat isa ay may sariling tunog, kaya walang saysay na palaging ang una
-       ang naririnig. Iniiwasan din nito ang huling narinig mo. */
-    const parts = (MARKS && MARKS.marks) || [];
-    if (parts.length > 1) {
-      let prev = -1;
-      try { prev = parseInt(localStorage.getItem(LAST), 10); } catch (e) {}
-      let i = Math.floor(Math.random() * parts.length);
-      if (i === prev) i = (i + 1 + Math.floor(Math.random() * (parts.length - 1))) % parts.length;
-      try { localStorage.setItem(LAST, String(i)); } catch (e) {}
-      const go = () => { try { el.currentTime = parts[i].at + 0.05; } catch (e) {} };
-      if (el.readyState > 0) go(); else el.addEventListener("loadedmetadata", go, { once: true });
+    /* At kung hindi igagalang ng browser ang #t=, lumukso na lang tayo. */
+    if (from) {
+      const go = () => {
+        if (el.currentTime < from - 1 || el.currentTime > from + 25) {
+          try { el.currentTime = from; } catch (e) {}
+        }
+      };
+      el.addEventListener("loadedmetadata", go, { once: true });
+      el.addEventListener("canplay", go, { once: true });
     }
 
     /* Ang pindutan ay dapat sumunod sa tunay na estado. Kung ang telepono mismo
@@ -82,6 +93,7 @@ export function makeBgm(onChange) {
       const n = nameAt(el.currentTime);
       if (n === shown) return;
       shown = n;
+      if (onPart) onPart(TITLES[n] || "");
       if (!("mediaSession" in navigator)) return;
       try {
         navigator.mediaSession.metadata = new MediaMetadata({

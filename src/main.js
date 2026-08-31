@@ -255,9 +255,13 @@ if (!location.hash) {
   const remember = (v) => { try { localStorage.setItem(KEY, v ? "1" : "0"); } catch (e) {} };
   const recall = () => { try { return localStorage.getItem(KEY) === "1"; } catch (e) { return false; } };
 
+  /* Ipakita ang pangalan ng bahaging tumutugtog. Ang pagpalit na hindi mo
+     nakikita ay pagpalit na hindi mo pinaniniwalaan. */
+  let part = "";
   const paint = (on) => {
     btn.setAttribute("aria-pressed", on ? "true" : "false");
-    if (lbl) lbl.textContent = on ? "Sound on" : "Sound";
+    if (!lbl) return;
+    lbl.textContent = on ? (part || "Sound on") : "Sound";
   };
 
   let want = false;
@@ -266,7 +270,10 @@ if (!location.hash) {
      iniutos ko. Kung ang telepono, ang lock screen, o ang ibang tab ang huminto,
      makikita mo iyon dito. Nasa ibaba ito ng paint at ng remember dahil ginagamit
      sila nito, at ang const ay hindi maaaring gamitin bago ito idineklara. */
-  const bgm = makeBgm((playing) => { want = playing; paint(playing); remember(playing); });
+  const bgm = makeBgm(
+    (playing) => { want = playing; paint(playing); remember(playing); },
+    (name) => { part = name; if (want) paint(true); },
+  );
   if (!bgm) return;
   btn.hidden = false;
 
