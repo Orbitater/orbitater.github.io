@@ -16,7 +16,9 @@
 const SRC = "/orbit-loop.mp3";
 const COVER = "/cover.jpg";
 
-export function makeBgm() {
+const POS = "orbitater.sound.pos";
+
+export function makeBgm(onChange) {
   if (typeof Audio === "undefined") return null;
 
   let el = null;
@@ -28,6 +30,30 @@ export function makeBgm() {
     el.preload = "auto";
     el.setAttribute("playsinline", "");
     el.volume = 0.62;
+
+    /* Ipagpatuloy kung saan tumigil. Ang refresh ay hindi dapat nagsisimula ulit
+       sa parehong unang nota sa tuwing tumitingin ka ng ibang bagay. */
+    try {
+      const at = parseFloat(localStorage.getItem(POS));
+      if (at > 0) el.currentTime = at;
+    } catch (e) {}
+    let last = 0;
+    el.addEventListener("timeupdate", () => {
+      if (el.currentTime - last < 4) return;
+      last = el.currentTime;
+      try { localStorage.setItem(POS, String(el.currentTime)); } catch (e) {}
+    });
+
+    /* Ang pindutan ay dapat sumunod sa tunay na estado. Kung ang telepono mismo
+       ang huminto, kailangang malaman iyon ng pindutan at hindi magsinungaling. */
+    const tell = () => {
+      if ("mediaSession" in navigator) {
+        try { navigator.mediaSession.playbackState = el.paused ? "paused" : "playing"; } catch (e) {}
+      }
+      if (onChange) onChange(!el.paused);
+    };
+    el.addEventListener("play", tell);
+    el.addEventListener("pause", tell);
     el.style.cssText = "position:fixed;width:0;height:0;opacity:0;pointer-events:none";
     document.body.appendChild(el);
 
@@ -42,6 +68,12 @@ export function makeBgm() {
         });
         navigator.mediaSession.setActionHandler("play", () => el.play().catch(() => {}));
         navigator.mediaSession.setActionHandler("pause", () => el.pause());
+        navigator.mediaSession.setActionHandler("stop", () => el.pause());
+        // walang saysay ang mga ito sa isang loop, pero pinipigilan nila ang iOS
+        // na maglagay ng kulay abong pindutan na walang ginagawa
+        for (const a of ["previoustrack", "nexttrack", "seekbackward", "seekforward"]) {
+          try { navigator.mediaSession.setActionHandler(a, null); } catch (e) {}
+        }
       } catch (e) { /* walang media session, tumutugtog pa rin */ }
     }
   };

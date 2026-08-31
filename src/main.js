@@ -251,10 +251,6 @@ if (!location.hash) {
   const lbl = document.getElementById("snd-lbl");
   if (!btn) return;
 
-  const bgm = makeBgm();
-  if (!bgm) return;                       // walang Web Audio, walang pindutan
-  btn.hidden = false;
-
   const KEY = "orbitater.sound";
   const remember = (v) => { try { localStorage.setItem(KEY, v ? "1" : "0"); } catch (e) {} };
   const recall = () => { try { return localStorage.getItem(KEY) === "1"; } catch (e) { return false; } };
@@ -265,6 +261,15 @@ if (!location.hash) {
   };
 
   let want = false;
+
+  /* Ang pindutan ay sumasalamin sa tunay na estado ng tugtog, hindi sa huling
+     iniutos ko. Kung ang telepono, ang lock screen, o ang ibang tab ang huminto,
+     makikita mo iyon dito. Nasa ibaba ito ng paint at ng remember dahil ginagamit
+     sila nito, at ang const ay hindi maaaring gamitin bago ito idineklara. */
+  const bgm = makeBgm((playing) => { want = playing; paint(playing); remember(playing); });
+  if (!bgm) return;
+  btn.hidden = false;
+
   const set = async (on) => {
     want = on;
     paint(on);
@@ -272,12 +277,17 @@ if (!location.hash) {
     if (on) {
       try {
         await bgm.start();
-        /* Kung hindi tumakbo ang konteksto, huwag magsabing tumutugtog. */
-        if (bgm.state !== "running" && lbl) lbl.textContent = "Blocked";
       } catch (e) {
-        paint(false); want = false;
+        /* Ang AbortError ay hindi kabiguan. Ganito tumatanggi ang play() kapag
+           may humintong iba habang naghihintay pa ito, at nangyayari iyon sa
+           tuwing hinahawakan ng lock screen o ng ibang tab ang tugtog. Ang
+           pagtawag doong sira ay pagsisinungaling ng pindutan. */
+        if (e && e.name === "AbortError") return;
+        paint(false); want = false; remember(false);
         if (lbl) lbl.textContent = "No sound";
+        return;
       }
+      if (bgm.state !== "running" && lbl) lbl.textContent = "Blocked";
     } else bgm.stop();
   };
 
@@ -286,14 +296,21 @@ if (!location.hash) {
   /* Walang pagtigil kapag lumipat ka ng app. Iyon mismo ang punto: dapat
      tumuloy ito habang naka-lock ang screen. */
 
+  /* Kung naka-on ito noong huli, subukan agad. Kadalasan ay pinapayagan ito ng
+     browser sa isang site na pinatugtog mo na dati, at doon nawawala ang pagkaputol
+     sa bawat refresh. Kung hindi, maghihintay ito ng unang paghawak, dahil iyon
+     ang senyas na tinatanggap ng browser. */
   if (recall()) {
     paint(true);
-    const wake = () => {
-      removeEventListener("pointerdown", wake);
-      removeEventListener("keydown", wake);
-      set(true);
-    };
-    addEventListener("pointerdown", wake, { once: true });
-    addEventListener("keydown", wake, { once: true });
+    want = true;
+    bgm.start().catch(() => {
+      const wake = () => {
+        removeEventListener("pointerdown", wake);
+        removeEventListener("keydown", wake);
+        set(true);
+      };
+      addEventListener("pointerdown", wake, { once: true });
+      addEventListener("keydown", wake, { once: true });
+    });
   }
 })();
