@@ -57,15 +57,13 @@ a{color:inherit;text-decoration:none}
 .hud{
   position:fixed;top:0;left:0;right:0;z-index:50;height:var(--hud);
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 var(--gut);border-bottom:1px solid var(--rule);
+  padding:0 max(var(--gut),env(safe-area-inset-right)) 0 max(var(--gut),env(safe-area-inset-left));
+  border-bottom:1px solid var(--rule);
   background:rgba(6,6,8,.66);backdrop-filter:blur(10px);
   font:400 10px/1 var(--mono);letter-spacing:.28em;text-transform:uppercase;
 }
 .hud__id{font-weight:500;letter-spacing:.22em}
 .hud__id sup{font-size:.6em;opacity:.5}
-.hud__sig{color:var(--a2)}
-.hud__sig span{color:var(--a1)}
-@media(max-width:400px){.hud__sig{display:none}}
 
 /* ---------- hero: the object fills the frame, no card, no border ---------- */
 .hero{
@@ -117,17 +115,18 @@ a{color:inherit;text-decoration:none}
 
 /* Ang tunog ay hindi kailanman nagsisimula nang mag-isa. Nakikita ang pindutan,
    maliit, at hindi humaharang sa kahit anong babasahin. */
+/* Nasa header ito, hindi sa ibaba. Sa ibaba ay nakatago ito sa likod ng bottom
+   bar ng Safari sa iPhone, at hindi mo malalaman na naroon pala ito. */
 .snd{
-  position:fixed;left:var(--gut);bottom:18px;z-index:60;
-  display:inline-flex;align-items:center;gap:9px;
-  padding:10px 15px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--rule);background:rgba(6,6,8,.82);backdrop-filter:blur(10px);
-  color:var(--a2);font:400 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:7px 13px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--rule);background:transparent;
+  color:var(--a2);font:400 10px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;
   transition:color .25s,border-color .25s;
 }
 .snd:hover{color:var(--a3);border-color:var(--a1)}
 .snd i{
-  display:block;width:0;height:0;
+  display:block;flex:none;width:0;height:0;
   border-left:7px solid currentColor;border-top:5px solid transparent;border-bottom:5px solid transparent;
 }
 .snd[aria-pressed="true"]{color:var(--a3);border-color:var(--a1)}
