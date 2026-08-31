@@ -269,8 +269,16 @@ if (!location.hash) {
     want = on;
     paint(on);
     remember(on);
-    if (on) { try { await bgm.start(); } catch (e) { paint(false); want = false; } }
-    else bgm.stop();
+    if (on) {
+      try {
+        await bgm.start();
+        /* Kung hindi tumakbo ang konteksto, huwag magsabing tumutugtog. */
+        if (bgm.state !== "running" && lbl) lbl.textContent = "Blocked";
+      } catch (e) {
+        paint(false); want = false;
+        if (lbl) lbl.textContent = "No sound";
+      }
+    } else bgm.stop();
   };
 
   btn.addEventListener("click", () => set(!want));

@@ -26,7 +26,7 @@ export function makeBgm() {
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return null;
 
-  let ctx = null, master = null, timer = 0, bar = 0, next = 0, on = false;
+  let ctx = null, master = null, timer = 0, bar = 0, next = 0, on = false, el = null;
 
   /* isang maikling impulse na ginawa mula sa ingay: silid, hindi plugin */
   const room = (c) => {
@@ -115,21 +115,21 @@ export function makeBgm() {
     const c = CHORDS[bar % CHORDS.length];
     const lag = () => (Math.random() - 0.5) * 0.022;
 
-    c.forEach((n, i) => key(t + i * 0.02 + lag(), n - 12 + (i === 0 ? 0 : 0), BAR * 0.95, 0.052));
+    c.forEach((n, i) => key(t + i * 0.02 + lag(), n - 12, BAR * 0.95, 0.115));
 
     // melodiya: ilang nota mula sa chord, hindi bawat bar
     if (bar % 2 === 0) {
       const pick = [c[4] + 12, c[3] + 12, c[2] + 12];
       pick.forEach((n, i) => {
-        if (Math.random() < 0.62) key(t + BEAT * (1.5 + i * 0.75) + lag(), n, 0.9, 0.045);
+        if (Math.random() < 0.62) key(t + BEAT * (1.5 + i * 0.75) + lag(), n, 0.9, 0.10);
       });
     }
 
-    thud(t + lag(), 55, 0.5, 0.42);
-    thud(t + BEAT * 2.5 + lag(), 55, 0.42, 0.3);
-    brush(t + BEAT * 1 + lag(), 0.06);
-    brush(t + BEAT * 3 + lag(), 0.07);
-    for (let i = 0; i < 4; i++) brush(t + BEAT * (i + 0.5) + lag(), 0.022);
+    thud(t + lag(), 55, 0.5, 0.75);
+    thud(t + BEAT * 2.5 + lag(), 55, 0.42, 0.55);
+    brush(t + BEAT * 1 + lag(), 0.13);
+    brush(t + BEAT * 3 + lag(), 0.15);
+    for (let i = 0; i < 4; i++) brush(t + BEAT * (i + 0.5) + lag(), 0.05);
 
     bar++;
   };
@@ -144,7 +144,7 @@ export function makeBgm() {
     out.gain.value = 0.0001;
 
     const tone = ctx.createBiquadFilter();      // ang dulo ng tape, walang matalim
-    tone.type = "lowpass"; tone.frequency.value = 2400; tone.Q.value = 0.3;
+    tone.type = "lowpass"; tone.frequency.value = 3200; tone.Q.value = 0.3;
 
     const conv = ctx.createConvolver();
     conv.buffer = room(ctx);
@@ -154,6 +154,25 @@ export function makeBgm() {
     wet.connect(conv).connect(tone);
     dry.connect(tone);
     tone.connect(out).connect(ctx.destination);
+
+    /* Sa iPhone, ang purong Web Audio ay tahimik kapag naka-silent ang switch ng
+       ringer. Ang parehong tunog na dumaan sa isang media element ay itinuturing
+       na playback at sumusunod sa volume, hindi sa switch. Kaya dito ito
+       dumadaan, at kung walang MediaStream ay diretso pa rin sa labas. */
+    try {
+      if (ctx.createMediaStreamDestination) {
+        const ms = ctx.createMediaStreamDestination();
+        out.disconnect();
+        out.connect(ms);
+        el = document.createElement("audio");
+        el.srcObject = ms.stream;
+        el.setAttribute("playsinline", "");
+        el.muted = false;
+        el.volume = 1;
+        el.style.cssText = "position:fixed;width:0;height:0;opacity:0;pointer-events:none";
+        document.body.appendChild(el);
+      }
+    } catch (e) { /* walang stream, diretso na lang */ }
 
     master = { wet, dry, out };
     crackle(ctx, dry);
@@ -170,11 +189,15 @@ export function makeBgm() {
 
   return {
     get playing() { return on; },
+    /* Para masabi ng pindutan ang totoo imbes na magpanggap na tumutugtog. */
+    get state() { return ctx ? ctx.state : "none"; },
+    get routed() { return el ? "media" : "direct"; },
     async start() {
       if (!ctx) build();
       if (ctx.state === "suspended") await ctx.resume();
+      if (el) { try { await el.play(); } catch (e) { /* haharangin ito kung walang senyas */ } }
       on = true;
-      fade(0.5, 1.6);
+      fade(0.9, 1.4);
       tick();
       clearInterval(timer);
       timer = setInterval(tick, 260);
@@ -183,6 +206,7 @@ export function makeBgm() {
       if (!ctx) return;
       on = false;
       fade(0.0001, 0.6);
+      if (el) { try { el.pause(); } catch (e) {} }
       clearInterval(timer);
       timer = setTimeout(() => { if (!on && ctx.state === "running") ctx.suspend(); }, 900);
     },
