@@ -17,10 +17,12 @@
  * Wala itong kinukuha hangga't walang pumipindot. Ang 3.3 MB ay hindi dapat
  * pasanin ng taong hindi naman nakikinig.
  */
+import MARKS from "./marks.json";
+
 const SRC = "/orbit-loop.m4a";
 const COVER = "/cover.jpg";
+const LAST = "orbitater.sound.part";
 
-const POS = "orbitater.sound.pos";
 
 export function makeBgm(onChange) {
   if (typeof Audio === "undefined") return null;
@@ -35,18 +37,21 @@ export function makeBgm(onChange) {
     el.setAttribute("playsinline", "");
     el.volume = 0.62;
 
-    /* Ipagpatuloy kung saan tumigil. Ang refresh ay hindi dapat nagsisimula ulit
-       sa parehong unang nota sa tuwing tumitingin ka ng ibang bagay. */
-    try {
-      const at = parseFloat(localStorage.getItem(POS));
-      if (at > 0) el.currentTime = at;
-    } catch (e) {}
-    let last = 0;
-    el.addEventListener("timeupdate", () => {
-      if (el.currentTime - last < 4) return;
-      last = el.currentTime;
-      try { localStorage.setItem(POS, String(el.currentTime)); } catch (e) {}
-    });
+    /* Magsimula sa ibang bahagi sa bawat pagbukas.
+       Ang unang bersyon ay iniingatan ang eksaktong posisyon, kaya lagi kang
+       bumabalik sa parehong lugar at parang iisa lang ang tugtog. Anim ang bahagi
+       at bawat isa ay may sariling tunog, kaya walang saysay na palaging ang una
+       ang naririnig. Iniiwasan din nito ang huling narinig mo. */
+    const parts = (MARKS && MARKS.marks) || [];
+    if (parts.length > 1) {
+      let prev = -1;
+      try { prev = parseInt(localStorage.getItem(LAST), 10); } catch (e) {}
+      let i = Math.floor(Math.random() * parts.length);
+      if (i === prev) i = (i + 1 + Math.floor(Math.random() * (parts.length - 1))) % parts.length;
+      try { localStorage.setItem(LAST, String(i)); } catch (e) {}
+      const go = () => { try { el.currentTime = parts[i].at + 0.05; } catch (e) {} };
+      if (el.readyState > 0) go(); else el.addEventListener("loadedmetadata", go, { once: true });
+    }
 
     /* Ang pindutan ay dapat sumunod sa tunay na estado. Kung ang telepono mismo
        ang huminto, kailangang malaman iyon ng pindutan at hindi magsinungaling. */
@@ -60,6 +65,33 @@ export function makeBgm(onChange) {
     el.addEventListener("pause", tell);
     el.style.cssText = "position:fixed;width:0;height:0;opacity:0;pointer-events:none";
     document.body.appendChild(el);
+
+    /* Ipakita kung aling bahagi ang tumutugtog. Kung hindi mo nakikita ang
+       pagpalit, walang nagsasabing nagpapalit nga ito. */
+    const TITLES = {
+      room: "Still falling", rain: "Nobody sent him", tilt: "Seven point six six",
+      bells: "Below the potato radius", bap: "It never lands", "return": "Still falling",
+    };
+    const nameAt = (t) => {
+      let n = parts.length ? parts[0].name : "room";
+      for (const m of parts) if (t >= m.at) n = m.name;
+      return n;
+    };
+    let shown = "";
+    el.addEventListener("timeupdate", () => {
+      const n = nameAt(el.currentTime);
+      if (n === shown) return;
+      shown = n;
+      if (!("mediaSession" in navigator)) return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: TITLES[n] || "Still falling",
+          artist: "ORBITATER",
+          album: "$TATER",
+          artwork: [{ src: COVER, sizes: "800x800", type: "image/jpeg" }],
+        });
+      } catch (e) {}
+    });
 
     /* Ang lock screen: pangalan, hindi "orbit-loop.m4a" */
     if ("mediaSession" in navigator) {
