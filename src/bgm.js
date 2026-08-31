@@ -1,4 +1,4 @@
-/* Ang tugtog.
+/* Ang tugtog: anim na bahagi, halos pitong minuto.
  *
  * Ang unang bersyon ay binubuo ang bawat nota sa browser habang tumutugtog.
  * Walang file, walang lisensya, malinis. Pero tumitigil iyon sa sandaling lumipat
@@ -10,10 +10,14 @@
  * art/build_music.py, parehong chord at parehong Rhodes. Ako pa rin ang gumawa
  * nito, kaya wala pa ring lisensyang hihingin ninuman.
  *
- * Wala itong kinukuha hangga't walang pumipindot. Ang 781 KB ay hindi dapat
+ * Anim na bahagi ito na magkakasunod, bawat isa ay may sariling bilis, susi at
+ * mga instrumento: Rhodes, pluck, kampana, pad, bass, at tambol. Ang isang maikling
+ * loop ay halata sa ikalawang ikot, kaya wala nang maikling loop.
+ *
+ * Wala itong kinukuha hangga't walang pumipindot. Ang 3.3 MB ay hindi dapat
  * pasanin ng taong hindi naman nakikinig.
  */
-const SRC = "/orbit-loop.mp3";
+const SRC = "/orbit-loop.m4a";
 const COVER = "/cover.jpg";
 
 const POS = "orbitater.sound.pos";
@@ -57,7 +61,7 @@ export function makeBgm(onChange) {
     el.style.cssText = "position:fixed;width:0;height:0;opacity:0;pointer-events:none";
     document.body.appendChild(el);
 
-    /* Ang lock screen: pangalan, hindi "orbit-loop.mp3" */
+    /* Ang lock screen: pangalan, hindi "orbit-loop.m4a" */
     if ("mediaSession" in navigator) {
       try {
         navigator.mediaSession.metadata = new MediaMetadata({
