@@ -1,3 +1,4 @@
+import { makeBgm } from "./bgm.js";
 import "./style.css";
 
 /* ORBITATER
@@ -235,4 +236,59 @@ if (!location.hash) {
     }
     if (legacy(text)) flash("Copied"); else { select(); flash("Select"); }
   });
+})();
+
+/* ---- sound -----------------------------------------------------------------
+   Every modern browser blocks audio that starts on its own, and they are right
+   to. So this never starts by itself. What it does remember is the choice: if
+   the sound was on last time, it waits for the first touch or key anywhere on
+   the page and starts there, because that is the gesture a browser accepts.
+
+   The music has no file behind it. It is built note by note while it plays, so
+   there is nothing to download and nothing to license. */
+(() => {
+  const btn = document.getElementById("snd");
+  const lbl = document.getElementById("snd-lbl");
+  if (!btn) return;
+
+  const bgm = makeBgm();
+  if (!bgm) return;                       // walang Web Audio, walang pindutan
+  btn.hidden = false;
+
+  const KEY = "orbitater.sound";
+  const remember = (v) => { try { localStorage.setItem(KEY, v ? "1" : "0"); } catch (e) {} };
+  const recall = () => { try { return localStorage.getItem(KEY) === "1"; } catch (e) { return false; } };
+
+  const paint = (on) => {
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    if (lbl) lbl.textContent = on ? "Sound on" : "Sound";
+  };
+
+  let want = false;
+  const set = async (on) => {
+    want = on;
+    paint(on);
+    remember(on);
+    if (on) { try { await bgm.start(); } catch (e) { paint(false); want = false; } }
+    else bgm.stop();
+  };
+
+  btn.addEventListener("click", () => set(!want));
+
+  /* Huwag magpatugtog sa isang tab na hindi tinitingnan. */
+  document.addEventListener("visibilitychange", () => {
+    if (!want) return;
+    if (document.hidden) bgm.stop(); else bgm.start().catch(() => {});
+  });
+
+  if (recall()) {
+    paint(true);
+    const wake = () => {
+      removeEventListener("pointerdown", wake);
+      removeEventListener("keydown", wake);
+      set(true);
+    };
+    addEventListener("pointerdown", wake, { once: true });
+    addEventListener("keydown", wake, { once: true });
+  }
 })();
