@@ -321,3 +321,59 @@ if (!location.hash) {
     });
   }
 })();
+
+/* ---- the market ------------------------------------------------------------
+   Buys, sells and volume for the last 24 hours, read from DexScreener, which is
+   the one source that answers a browser at all. Solana's public RPC refuses with
+   429 and Pump.fun's own API says Not allowed by CORS, so the holder count that
+   would sit here cannot be fetched by a page like this. It is left out rather
+   than approximated, for the same reason the panel above it disappears instead
+   of inventing an altitude. */
+(() => {
+  const box = document.getElementById("mkt");
+  const note = document.getElementById("mkt-note");
+  if (!box) return;
+
+  const MINT = "9Y3TM9LjEuuz7s6twHd4UPT7HE1SXSZTM2fLbaizpump";
+  const URL = "https://api.dexscreener.com/latest/dex/tokens/" + MINT;
+
+  const put = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const show = (on) => { box.hidden = !on; if (note) note.hidden = !on; };
+  const money = (n) =>
+    n >= 1000 ? "$" + Math.round(n).toLocaleString("en-GB")
+              : "$" + n.toFixed(2);
+
+  const BASE = 45000;
+  let gap = BASE, timer = 0, onScreen = false;
+  const later = () => { clearTimeout(timer); timer = setTimeout(tick, gap); };
+
+  const pull = () => {
+    fetch(URL, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        const p = (d && d.pairs && d.pairs[0]) || null;
+        if (!p || !p.txns || !p.txns.h24) return Promise.reject();
+        const buys = Number(p.txns.h24.buys ?? 0);
+        const sells = Number(p.txns.h24.sells ?? 0);
+        put("mkt-buy", String(buys));
+        put("mkt-sell", String(sells));
+        put("mkt-all", String(buys + sells));
+        put("mkt-vol", money(Number((p.volume && p.volume.h24) || 0)));
+        gap = BASE;
+        show(true);
+      })
+      .catch(() => { gap = Math.min(gap * 2, 600000); show(false); })
+      .then(later);
+  };
+
+  const tick = () => { if (onScreen && !document.hidden) pull(); else later(); };
+
+  new IntersectionObserver(([e]) => {
+    onScreen = e.isIntersecting;
+    if (onScreen) { gap = BASE; tick(); }
+  }, { threshold: 0 }).observe(box.parentElement || box);
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && onScreen) tick();
+  });
+})();

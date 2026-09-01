@@ -24,6 +24,11 @@
   --rule:rgba(232,182,71,.16);
 
   /* one family, top to bottom */
+  /* Dalawang kulay lang ang nakakalabas sa amber, at may dahilan sila: ang
+     pagpasok at ang paglabas. Pinili silang kasundo ng ginto at hindi ang
+     matingkad na berde at pula, dahil ang neon sa itim ay mukhang mura. */
+  --up:#7FB08A;
+  --down:#C8705A;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --disp:var(--mono);
   --gut:clamp(18px,4.5vw,64px);
@@ -112,6 +117,8 @@ a{color:inherit;text-decoration:none}
 .log div{display:flex;gap:20px;padding:13px 0;border-bottom:1px solid var(--rule)}
 .log dt{color:var(--a1);width:124px;flex:none}
 .log dd{color:var(--a3)}
+.log dd.up{color:var(--up)}
+.log dd.down{color:var(--down)}
 
 /* Ang tunog ay hindi kailanman nagsisimula nang mag-isa. Nakikita ang pindutan,
    maliit, at hindi humaharang sa kahit anong babasahin. */
