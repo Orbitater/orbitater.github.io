@@ -156,14 +156,15 @@ a{color:inherit;text-decoration:none}
 @media(prefers-reduced-motion:reduce){.snd[aria-pressed="true"] i{animation:none}}
 
 /* Ang balita, sa itaas, kung saan ito nakikita ng dumadating agad. */
-.live{
+p.live,.live{
   display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap;
   margin-top:6px;padding:12px 18px;border-radius:999px;
   border:1px solid var(--a3);background:rgba(232,182,71,.10);
   font:400 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
   transition:background .25s;
 }
-.live:hover{background:rgba(232,182,71,.2)}
+/* Hindi na ito link, kaya walang hover. */
+a.live:hover{background:rgba(232,182,71,.2)}
 .live i{
   width:7px;height:7px;border-radius:50%;background:var(--a3);
   box-shadow:0 0 12px var(--a3);animation:beat 2s ease-in-out infinite;
@@ -189,8 +190,8 @@ a{color:inherit;text-decoration:none}
   display:block;margin-top:8px;
   font:400 12px/1.6 var(--mono);letter-spacing:.02em;color:var(--a2);
 }
-.cta:hover{background:rgba(232,182,71,.16)}
-@media(hover:hover){.cta:hover{transform:translateY(-2px)}}
+a.cta:hover{background:rgba(232,182,71,.16)}
+@media(hover:hover){a.cta:hover{transform:translateY(-2px)}}
 
 /* Ang address ang tanging bagay sa pahinang kailangang kopyahin nang tumpak, at
    ang mali dito ay pera ng ibang tao. Buo itong lumalabas, mababasa, at may
