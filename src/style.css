@@ -69,6 +69,16 @@ a{color:inherit;text-decoration:none}
 }
 .hud__id{font-weight:500;letter-spacing:.22em}
 .hud__id sup{font-size:.6em;opacity:.5}
+.hud__ctl{display:flex;align-items:center;gap:8px}
+.pill{
+  display:inline-flex;align-items:center;padding:7px 13px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--rule);background:transparent;color:var(--a2);
+  font:400 10px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  transition:color .25s,border-color .25s;white-space:nowrap;
+}
+.pill:hover{color:var(--a3);border-color:var(--a1)}
+.pill.done{color:var(--up);border-color:var(--up)}
+@media(max-width:380px){.pill{padding:7px 10px;letter-spacing:.1em}}
 
 /* ---------- hero: the object fills the frame, no card, no border ---------- */
 .hero{

@@ -250,19 +250,18 @@ if (!location.hash) {
 
 /* ---- the address ----------------------------------------------------------
    A mistyped mint address is somebody else's money gone, so the page never asks
-   anyone to copy it by hand. The clipboard API needs a secure context and this
-   page has one, but the old command is kept behind it, and if both fail the
-   text is selected so a long press can finish the job. */
+   anyone to copy it by hand. There are two buttons: one in the header, reachable
+   from anywhere on the page, and one beside the address itself.
+
+   The clipboard API needs a secure context and this page has one, but the old
+   command is kept behind it, and if both fail the text is selected so a long
+   press can finish the job. */
 (() => {
   const code = document.getElementById("ca");
-  const b = document.getElementById("ca-copy");
-  if (!code || !b) return;
+  if (!code) return;
+  const text = code.textContent.trim();
 
-  const flash = (t) => {
-    b.textContent = t; b.classList.add("done");
-    setTimeout(() => { b.textContent = "Copy"; b.classList.remove("done"); }, 1800);
-  };
-  const legacy = (text) => {
+  const legacy = () => {
     const t = document.createElement("textarea");
     t.value = text; t.setAttribute("readonly", "");
     t.style.cssText = "position:fixed;top:0;left:0;opacity:0";
@@ -277,16 +276,25 @@ if (!location.hash) {
     const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
   };
 
-  b.addEventListener("click", () => {
-    const text = code.textContent.trim();
-    if (navigator.clipboard && isSecureContext) {
-      navigator.clipboard.writeText(text)
-        .then(() => flash("Copied"))
-        .catch(() => { if (legacy(text)) flash("Copied"); else { select(); flash("Select"); } });
-      return;
-    }
-    if (legacy(text)) flash("Copied"); else { select(); flash("Select"); }
-  });
+  const wire = (btn, ok, fail, rest) => {
+    if (!btn) return;
+    const flash = (t) => {
+      btn.textContent = t; btn.classList.add("done");
+      setTimeout(() => { btn.textContent = rest; btn.classList.remove("done"); }, 1800);
+    };
+    btn.addEventListener("click", () => {
+      if (navigator.clipboard && isSecureContext) {
+        navigator.clipboard.writeText(text)
+          .then(() => flash(ok))
+          .catch(() => { if (legacy()) flash(ok); else { select(); flash(fail); } });
+        return;
+      }
+      if (legacy()) flash(ok); else { select(); flash(fail); }
+    });
+  };
+
+  wire(document.getElementById("ca-copy"), "Copied", "Select", "Copy");
+  wire(document.getElementById("ca-top"), "Copied", "Select", "Copy CA");
 })();
 
 /* ---- sound -----------------------------------------------------------------
