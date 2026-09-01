@@ -185,6 +185,57 @@ if (!location.hash) {
       .then(later);
   };
 
+  /* Landed at burned up.
+     Walang API na nagsasabi kung tubo o lugi ang isang nagbenta. Ang ibinibigay
+     ng GeckoTerminal ay ang mismong listahan ng kalakalan, kaya dito bilangin.
+     Sa bawat wallet, ang binili ay nagiging katamtamang halaga ng nabili nito.
+     Kapag nagbenta ito, ang presyo ng pagbenta laban sa halagang iyon ang
+     nagsasabi kung nakalapag ito o nasunog.
+
+     Ang hindi masasagot: ang bumili bago pa magsimula ang nakikitang kasaysayan
+     ay walang alam na halaga, kaya hindi ito binibilang sa kahit alin. Mas
+     mabuting kulang kaysa hulaan. */
+  const pnl = document.getElementById("pnl");
+  let lastPool = "";
+
+  const landings = (pool) => {
+    if (!pnl || pool === lastPool + "#busy") return;
+    lastPool = pool;
+    fetch("https://api.geckoterminal.com/api/v2/networks/solana/pools/" + pool + "/trades",
+          { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        const rows = (d && d.data) || [];
+        if (!rows.length) { pnl.hidden = true; return; }
+        const held = new Map();          // wallet -> { tok, cost }
+        let win = 0, lose = 0;
+        for (let i = rows.length - 1; i >= 0; i--) {      // pinakaluma muna
+          const a = rows[i].attributes || {};
+          const who = a.tx_from_address;
+          if (!who) continue;
+          const buy = a.kind === "buy";
+          const tok = Number(buy ? a.to_token_amount : a.from_token_amount);
+          const px = Number(buy ? a.price_to_in_usd : a.price_from_in_usd);
+          if (!(tok > 0) || !(px > 0)) continue;
+          const h = held.get(who) || { tok: 0, cost: 0 };
+          if (buy) {
+            h.tok += tok; h.cost += tok * px;
+          } else if (h.tok > 0) {
+            const avg = h.cost / h.tok;
+            if (px > avg) win++; else lose++;
+            const used = Math.min(tok, h.tok);
+            h.cost -= avg * used; h.tok -= used;
+          }
+          held.set(who, h);
+        }
+        put("pnl-win", String(win));
+        put("pnl-lose", String(lose));
+        put("pnl-all", String(win + lose));
+        pnl.hidden = false;
+      })
+      .catch(() => { if (pnl) pnl.hidden = true; });
+  };
+
   const tick = () => { if (onScreen && !document.hidden) pull(); else later(); };
 
   new IntersectionObserver(([e]) => {
@@ -353,17 +404,66 @@ if (!location.hash) {
       .then((d) => {
         const p = (d && d.pairs && d.pairs[0]) || null;
         if (!p || !p.txns || !p.txns.h24) return Promise.reject();
-        const buys = Number(p.txns.h24.buys ?? 0);
-        const sells = Number(p.txns.h24.sells ?? 0);
-        put("mkt-buy", String(buys));
-        put("mkt-sell", String(sells));
-        put("mkt-all", String(buys + sells));
+        put("mkt-buy", String(Number(p.txns.h24.buys ?? 0)));
+        put("mkt-sell", String(Number(p.txns.h24.sells ?? 0)));
         put("mkt-vol", money(Number((p.volume && p.volume.h24) || 0)));
         gap = BASE;
         show(true);
+        if (p.pairAddress) landings(p.pairAddress);
       })
       .catch(() => { gap = Math.min(gap * 2, 600000); show(false); })
       .then(later);
+  };
+
+  /* Landed at burned up.
+     Walang API na nagsasabi kung tubo o lugi ang isang nagbenta. Ang ibinibigay
+     ng GeckoTerminal ay ang mismong listahan ng kalakalan, kaya dito bilangin.
+     Sa bawat wallet, ang binili ay nagiging katamtamang halaga ng nabili nito.
+     Kapag nagbenta ito, ang presyo ng pagbenta laban sa halagang iyon ang
+     nagsasabi kung nakalapag ito o nasunog.
+
+     Ang hindi masasagot: ang bumili bago pa magsimula ang nakikitang kasaysayan
+     ay walang alam na halaga, kaya hindi ito binibilang sa kahit alin. Mas
+     mabuting kulang kaysa hulaan. */
+  const pnl = document.getElementById("pnl");
+  let lastPool = "";
+
+  const landings = (pool) => {
+    if (!pnl || pool === lastPool + "#busy") return;
+    lastPool = pool;
+    fetch("https://api.geckoterminal.com/api/v2/networks/solana/pools/" + pool + "/trades",
+          { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        const rows = (d && d.data) || [];
+        if (!rows.length) { pnl.hidden = true; return; }
+        const held = new Map();          // wallet -> { tok, cost }
+        let win = 0, lose = 0;
+        for (let i = rows.length - 1; i >= 0; i--) {      // pinakaluma muna
+          const a = rows[i].attributes || {};
+          const who = a.tx_from_address;
+          if (!who) continue;
+          const buy = a.kind === "buy";
+          const tok = Number(buy ? a.to_token_amount : a.from_token_amount);
+          const px = Number(buy ? a.price_to_in_usd : a.price_from_in_usd);
+          if (!(tok > 0) || !(px > 0)) continue;
+          const h = held.get(who) || { tok: 0, cost: 0 };
+          if (buy) {
+            h.tok += tok; h.cost += tok * px;
+          } else if (h.tok > 0) {
+            const avg = h.cost / h.tok;
+            if (px > avg) win++; else lose++;
+            const used = Math.min(tok, h.tok);
+            h.cost -= avg * used; h.tok -= used;
+          }
+          held.set(who, h);
+        }
+        put("pnl-win", String(win));
+        put("pnl-lose", String(lose));
+        put("pnl-all", String(win + lose));
+        pnl.hidden = false;
+      })
+      .catch(() => { if (pnl) pnl.hidden = true; });
   };
 
   const tick = () => { if (onScreen && !document.hidden) pull(); else later(); };
